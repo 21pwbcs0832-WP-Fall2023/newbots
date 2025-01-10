@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-200 h-screen flex flex-col">
+    <div class="flex-1 p-4 overflow-y-auto space-y-4" id="messages-container">
+        <!-- Chat messages will appear here -->
+    </div>
+    <div class="p-4 bg-white border-t">
+        <div class="flex items-center">
+            <input id="user-input" type="text" class="flex-1 px-4 py-2 border rounded-full focus:outline-none" placeholder="Type your message here...">
+            <button id="send-button" class="ml-2 px-4 py-2 bg-green-500 text-white rounded-full hover:bg-green-600">
+                Send
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const sendButton = document.getElementById('send-button');
+        const userInput = document.getElementById('user-input');
+        const messagesContainer = document.getElementById('messages-container');
+
+        sendButton.addEventListener('click', async () => {
+            const query = userInput.value.trim();
+            if (!query) return;
+
+            // Display user's message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'text-right';
+            userMessage.innerHTML = `
+                <div class="inline-block bg-green-500 text-white px-4 py-2 rounded-lg">
+                    ${query}
+                </div>`;
+            messagesContainer.appendChild(userMessage);
+
+            // Clear input field
+            userInput.value = '';
+
+            // Fetch chatbot response
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query }),
+                });
+                const data = await response.json();
+
+                const botMessage = document.createElement('div');
+                botMessage.className = 'text-left';
+
+                if (data.error) {
+                    botMessage.innerHTML = `
+                        <div class="inline-block bg-red-500 text-white px-4 py-2 rounded-lg">
+                            ${data.text || data.error}
+                        </div>`;
+                } else if (data.title && data.ingredients && data.steps) {
+                    botMessage.innerHTML = `
+                        <div class="inline-block bg-gray-300 text-black px-4 py-2 rounded-lg">
+                            <h3 class="text-lg font-bold">${data.title}</h3>
+                            <p><strong>Ingredients:</strong></p>
+                            <ul class="list-disc list-inside">
+                                ${data.ingredients.map(ingredient => `<li>${ingredient}</li>`).join('')}
+                            </ul>
+                            <p><strong>Steps:</strong></p>
+                            <ol class="list-decimal list-inside">
+                                ${data.steps.map(step => `<li>${step}</li>`).join('')}
+                            </ol>
+                        </div>`;
+                } else {
+                    botMessage.innerHTML = `
+                        <div class="inline-block bg-gray-300 text-black px-4 py-2 rounded-lg">
+                            ${data.response}
+                        </div>`;
+                }
+
+                messagesContainer.appendChild(botMessage);
+
+                // Scroll to the bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
